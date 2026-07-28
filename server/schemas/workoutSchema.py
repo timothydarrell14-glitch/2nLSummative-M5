@@ -38,3 +38,9 @@ class WorkoutSchema(Schema):
     workout_exercises = fields.Nested(
         WorkoutExerciseSchema, many=True, dump_only=True
     )
+
+
+# Reusable schema instances for single records and workout collections.
+workout_exercise_schema = WorkoutExerciseSchema()
+workout_schema = WorkoutSchema()
+workouts_schema = WorkoutSchema(many=True)

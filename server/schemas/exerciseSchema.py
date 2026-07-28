@@ -22,3 +22,8 @@ class ExerciseSchema(Schema):
     def validate_name(self, value, **kwargs):
         if not value.strip():
             raise ValidationError("Exercise name cannot be blank.")
+
+
+# Reusable schema instances for single records and exercise collections.
+exercise_schema = ExerciseSchema()
+exercises_schema = ExerciseSchema(many=True)

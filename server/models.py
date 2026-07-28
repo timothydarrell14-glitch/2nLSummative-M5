@@ -6,6 +6,8 @@ from sqlalchemy.orm import validates
 
 db = SQLAlchemy()
 
+
+# Exercise (id, name, category, equipment_needed(bool))
 class Exercise(db.Model):
     """A type of exercise that can be added to a workout."""
 
@@ -35,6 +37,7 @@ class Exercise(db.Model):
         return value
 
 
+# Workout (id, date, duration_minutes, notes)
 class Workout(db.Model):
     """A recorded workout session."""
 
@@ -56,6 +59,7 @@ class Workout(db.Model):
         return value
 
 
+# WorkoutExercises (id, workout_id, exercise_id, reps, sets, duration_seconds)
 class WorkoutExercise(db.Model):
     """An exercise performed during a particular workout."""
 

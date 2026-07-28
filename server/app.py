@@ -4,8 +4,12 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from models import Exercise, Workout, WorkoutExercise, db
-from schemas.exerciseSchema import ExerciseSchema
-from schemas.workoutSchema import WorkoutExerciseSchema, WorkoutSchema
+from schemas.exerciseSchema import exercise_schema, exercises_schema
+from schemas.workoutSchema import (
+    workout_exercise_schema,
+    workout_schema,
+    workouts_schema,
+)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -15,18 +19,13 @@ migrate = Migrate(app, db)
 
 db.init_app(app)
 
-workout_schema = WorkoutSchema()
-workouts_schema = WorkoutSchema(many=True)
-exercise_schema = ExerciseSchema()
-exercises_schema = ExerciseSchema(many=True)
-workout_exercise_schema = WorkoutExerciseSchema()
-
-
 def validation_error_response(error):
+    """Return Marshmallow validation messages in the API's JSON error format."""
     return jsonify({"errors": error.messages}), 400
 
 
 def json_body():
+    """Get a JSON request body, or return a ready-to-send 400 response."""
     body = request.get_json(silent=True)
     if body is None:
         return None, (jsonify({"errors": {"json": ["A JSON body is required."]}}), 400)
@@ -34,15 +33,18 @@ def json_body():
 
 
 def not_found_response(resource):
+    """Create a consistent JSON response for resources that do not exist."""
     return jsonify({"error": f"{resource} not found."}), 404
 
 
+# GET /workouts
 @app.get("/workouts")
 def get_workouts():
     workouts = Workout.query.order_by(Workout.date.desc(), Workout.id.desc()).all()
     return jsonify(workouts_schema.dump(workouts)), 200
 
 
+# GET /workouts/<id>
 @app.get("/workouts/<int:id>")
 def get_workout(id):
     workout = db.session.get(Workout, id)
@@ -51,6 +53,7 @@ def get_workout(id):
     return jsonify(workout_schema.dump(workout)), 200
 
 
+# POST /workouts (creating a workout)
 @app.post("/workouts")
 def create_workout():
     body, error = json_body()
@@ -69,6 +72,7 @@ def create_workout():
     return jsonify(workout_schema.dump(workout)), 201
 
 
+# DELETE /workouts/<id>
 @app.delete("/workouts/<int:id>")
 def delete_workout(id):
     workout = db.session.get(Workout, id)
@@ -80,12 +84,14 @@ def delete_workout(id):
     return make_response("", 204)
 
 
+# GET /exercises
 @app.get("/exercises")
 def get_exercises():
     exercises = Exercise.query.order_by(Exercise.name).all()
     return jsonify(exercises_schema.dump(exercises)), 200
 
 
+# GET /exercises/<id>
 @app.get("/exercises/<int:id>")
 def get_exercise(id):
     exercise = db.session.get(Exercise, id)
@@ -94,6 +100,7 @@ def get_exercise(id):
     return jsonify(exercise_schema.dump(exercise)), 200
 
 
+# POST /exercises (creating an exercise)
 @app.post("/exercises")
 def create_exercise():
     body, error = json_body()
@@ -114,6 +121,7 @@ def create_exercise():
     return jsonify(exercise_schema.dump(exercise)), 201
 
 
+# DELETE /exercises/<id>
 @app.delete("/exercises/<int:id>")
 def delete_exercise(id):
     exercise = db.session.get(Exercise, id)
@@ -125,8 +133,10 @@ def delete_exercise(id):
     return make_response("", 204)
 
 
+# POST /workouts/<workout_id>/exercises/<exercise_id>/workout_exercises
 @app.post("/workouts/<int:workout_id>/exercises/<int:exercise_id>/workout_exercises")
 def create_workout_exercise(workout_id, exercise_id):
+    """Record an existing exercise as part of an existing workout."""
     if db.session.get(Workout, workout_id) is None:
         return not_found_response("Workout")
     if db.session.get(Exercise, exercise_id) is None:
@@ -137,6 +147,7 @@ def create_workout_exercise(workout_id, exercise_id):
         return error
 
     try:
+        # Relationship ids come from the URL, not from client-controlled JSON.
         workout_exercise_data = workout_exercise_schema.load(
             {**body, "workout_id": workout_id, "exercise_id": exercise_id}
         )
