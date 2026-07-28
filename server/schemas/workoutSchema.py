@@ -1,7 +1,4 @@
-from marshmallow import EXCLUDE, Schema, fields, validate, Marshmallow
-
-
-ma = Marshmallow()
+from marshmallow import EXCLUDE, Schema, ValidationError, fields, validate, validates_schema
 
 class WorkoutExerciseSchema(Schema):
     """Serialize an exercise recorded as part of a workout."""
@@ -15,6 +12,15 @@ class WorkoutExerciseSchema(Schema):
     reps = fields.Integer(required=True, validate=validate.Range(min=1))
     sets = fields.Integer(required=True, validate=validate.Range(min=0))
     duration_seconds = fields.Integer(required=True, validate=validate.Range(min=0))
+
+    @validates_schema
+    def validate_activity_measurement(self, data, **kwargs):
+        """Require a meaningful set-based or timed exercise record."""
+        if data["sets"] == 0 and data["duration_seconds"] == 0:
+            raise ValidationError(
+                "Provide at least one set or a duration in seconds.",
+                field_name="sets",
+            )
 
 
 class WorkoutSchema(Schema):
